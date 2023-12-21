@@ -38,6 +38,8 @@ class SignalInjectionCtrl(Ctrl):
         Amplitude of the injected voltage (V).
     w_o : float
         PLL natural frequency (rad/s).
+    n_levels : int, optional
+        Number of inverter voltage levels. Either 2 or 3, the default is 2.
 
     Attributes
     ----------
@@ -59,7 +61,7 @@ class SignalInjectionCtrl(Ctrl):
     """
 
     # pylint: disable=too-many-instance-attributes
-    def __init__(self, par, ref, T_s=250e-6):
+    def __init__(self, par, ref, T_s=250e-6, n_levels=2):
         super().__init__()
         self.T_s = T_s
         self.n_p = par.n_p
@@ -68,7 +70,7 @@ class SignalInjectionCtrl(Ctrl):
         self.pll = PhaseLockedLoop(w_o=2*np.pi*40)
         self.signal_inj = SignalInjection(par, U_inj=250)
         self.speed_ctrl = SpeedCtrl(par.J, 2*np.pi*4)
-        self.pwm = PWM()
+        self.pwm = PWM(n_levels=n_levels)
         self.w_m_ref = callable
 
     def __call__(self, mdl):

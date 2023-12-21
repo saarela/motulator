@@ -34,7 +34,7 @@ class VHzCtrl(Ctrl):
     """
 
     # pylint: disable=too-many-instance-attributes
-    def __init__(self, T_s, par, psi_s_nom, k_u=1., k_w=4., six_step=False):
+    def __init__(self, T_s, par, psi_s_nom, k_u=1., k_w=4., six_step=False, n_levels=2):
         super().__init__()
         self.T_s = T_s
         self.w_m_ref = callable
@@ -48,7 +48,7 @@ class VHzCtrl(Ctrl):
         self.alpha_f = .1*w_rb
         self.alpha_i = .1*w_rb
         # Instantiate classes
-        self.pwm = PWM(six_step=six_step)
+        self.pwm = PWM(six_step=six_step, n_levels=n_levels)
         self.rate_limiter = callable
         self.six_step = six_step
         # States

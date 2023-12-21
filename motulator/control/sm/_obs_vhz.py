@@ -62,6 +62,8 @@ class ObserverBasedVHzCtrl(Ctrl):
         Control system parameters.
     T_s : float, optional
         Sampling period (s). The default is 250e-6.
+    n_levels : int, optional
+        Number of inverter voltage levels. Either 2 or 3, the default is 2.
 
     Attributes
     ----------
@@ -89,7 +91,7 @@ class ObserverBasedVHzCtrl(Ctrl):
         self.alpha_psi = ctrl_par.alpha_psi
         self.k_tau = ctrl_par.k_tau
         # Subsystems
-        self.pwm = PWM()
+        self.pwm = PWM(n_levels=n_levels)
         self.flux_torque_ref = FluxTorqueReference(ctrl_par)
         self.observer = FluxObserver(par)
         self.rate_limiter = RateLimiter(np.inf)

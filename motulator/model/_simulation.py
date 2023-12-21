@@ -61,6 +61,8 @@ class CarrierComparison:
     return_complex : bool, optional
         Complex switching state space vectors are returned if True. Otherwise
         phase switching states are returned. The default is True.
+    n_levels : int, optional
+        Number of inverter voltage levels. Either 2 or 3, the default is 2.
 
     Examples
     --------
@@ -101,11 +103,12 @@ class CarrierComparison:
 
     """
 
-    def __init__(self, N=2**12, return_complex=True):
+    def __init__(self, N=2**12, return_complex=True, n_levels=2):
         self.N = N
         self.return_complex = return_complex
         self._rising_edge = True  # Stores the carrier direction
-
+        self.n_levels = n_levels
+        
     def __call__(self, T_s, d_abc):
         """
         Compute the switching state durations and vectors.
@@ -134,11 +137,20 @@ class CarrierComparison:
         # Quantize the duty ratios to N levels
         d_abc = np.round(self.N*np.asarray(d_abc))/self.N
 
-        # Assume falling edge and compute the normalized switching instants:
-        t_n = np.append(0, np.sort(d_abc))
-        # Compute the correponding switching states:
-        q_abc = (t_n[:, np.newaxis] < d_abc).astype(int)
+        if self.n_levels==2:
+            # Assume falling edge and compute the normalized switching instants:
+            t_n = np.append(0, np.sort(d_abc))
+            # Compute the correponding switching states:
+            q_abc = (t_n[:, np.newaxis] < d_abc).astype(int)
+        else:
+            # Assume falling edge and compute the normalized switching instants:
+            t_n = np.append(0, np.sort(2*d_abc-(d_abc>.5)))
 
+            # The switching state (0, .5, or 1) is determined by two carrier comparisons:
+            q1 = ((   .5*t_n[:, np.newaxis]) < d_abc).astype(float)
+            q2 = ((.5+.5*t_n[:, np.newaxis]) < d_abc).astype(float)
+            q_abc = .5 * (q1 + q2)
+            
         # Durations of switching states
         t_steps = T_s*np.diff(t_n, append=1)
 
@@ -205,7 +217,7 @@ class Simulation:
         self.ctrl = ctrl
         self._delay = Delay(delay)
         if pwm:
-            self._pwm = CarrierComparison()
+            self._pwm = CarrierComparison(n_levels=getattr(ctrl.pwm, 'n_levels', 2))
         else:
             self._pwm = _zoh
 

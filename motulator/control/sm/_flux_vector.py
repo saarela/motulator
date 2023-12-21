@@ -39,6 +39,8 @@ class FluxVectorCtrl(Ctrl):
         Sampling period (s). The default is 250e-6.
     sensorless : bool, optional
         If True, sensorless control is used. The default is True.
+    n_levels : int, optional
+        Number of inverter voltage levels. Either 2 or 3, the default is 2.
 
     Attributes
     ----------
@@ -74,7 +76,8 @@ class FluxVectorCtrl(Ctrl):
             alpha_psi=2*np.pi*100,
             alpha_tau=2*np.pi*200,
             T_s=250e-6,
-            sensorless=True):
+            sensorless=True,
+            n_levels=2):
         super().__init__()
         self.T_s = T_s
         self.sensorless = sensorless
@@ -85,7 +88,7 @@ class FluxVectorCtrl(Ctrl):
         self.observer = Observer(
             par, alpha_o=2*np.pi*100, sensorless=sensorless)
         self.flux_torque_ref = FluxTorqueReference(ref)
-        self.pwm = PWM()
+        self.pwm = PWM(n_levels=n_levels)
         self.speed_ctrl = SpeedCtrl(par.J, 2*np.pi*4)
         # Bandwidths
         self.alpha_psi = alpha_psi

@@ -20,6 +20,8 @@ class PWM:
     ----------
     six_step: bool, optional
         Enable six-step operation in overmodulation. The default is False.
+    n_levels : int, optional
+        Number of inverter voltage levels. Either 2 or 3, the default is 2.
     
     Attributes
     ----------
@@ -34,10 +36,13 @@ class PWM:
     
     """
 
-    def __init__(self, six_step=False):
+    def __init__(self, six_step=False, n_levels=2):
         self.six_step = six_step
         self.realized_voltage = 0
         self._u_ref_lim_old = 0
+
+        assert n_levels==2 or n_levels==3, "Number of voltage levels should be 2 or 3."
+        self.n_levels = n_levels
 
     @staticmethod
     def six_step_overmodulation(u_s_ref, u_dc):
@@ -95,7 +100,7 @@ class PWM:
         return u_s_ref_mod
 
     @staticmethod
-    def duty_ratios(u_s_ref, u_dc):
+    def duty_ratios(u_s_ref, u_dc, n_levels=2):
         """
         Compute the duty ratios for three-phase PWM.
 
@@ -108,7 +113,9 @@ class PWM:
             Voltage reference in stator coordinates (V).
         u_dc : float
             DC-bus voltage (V).
-
+        n_levels : int, optional
+            Number of inverter voltage levels. Either 2 or 3, the default is 2.
+        
         Returns
         -------
         d_abc : ndarray, shape (3,)
@@ -119,16 +126,30 @@ class PWM:
         u_abc = complex2abc(u_s_ref)
 
         # Symmetrization by adding the zero-sequence voltage
+        # The voltages will be in the range 0-u_dc
         u_0 = .5*(np.amax(u_abc) + np.amin(u_abc))
-        u_abc -= u_0
+        u_abc = u_abc + u_dc/2 - u_0
 
+        # Three-level inverter needs an additional symmetrization step.
+        if n_levels==3:
+            # Shift
+            idx = u_abc >= (u_dc/2)
+            u_abc = np.mod(u_abc, u_dc/2)
+            
+            # Add another zero sequence component
+            u_0 = .5*(np.amax(u_abc) + np.amin(u_abc))
+            u_abc = u_abc + u_dc/4 - u_0
+
+            # Shift back
+            u_abc = u_abc + idx*u_dc/2
+        
         # Preventing overmodulation by means of a minimum phase error method
-        m = (2./u_dc)*np.amax(u_abc)
+        m = (2./u_dc)*np.amax(u_abc-u_dc/2)
         if m > 1:
-            u_abc = u_abc/m
-
+            u_abc = u_dc/2 + (u_abc-u_dc/2)/m
+            
         # Duty ratios
-        d_abc = .5 + u_abc/u_dc
+        d_abc = u_abc/u_dc
 
         return d_abc
 
@@ -168,7 +189,7 @@ class PWM:
             u_s_ref = self.six_step_overmodulation(u_s_ref, u_dc)
 
         # Duty ratios
-        d_abc = self.duty_ratios(u_s_ref, u_dc)
+        d_abc = self.duty_ratios(u_s_ref, u_dc, self.n_levels)
 
         # Realizable voltage
         u_s_ref_lim = abc2complex(d_abc)*u_dc
