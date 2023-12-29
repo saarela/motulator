@@ -122,6 +122,12 @@ class PWM:
             Duty ratios.
 
         """
+
+        # Preventing overmodulation by means of a minimum phase error method
+        m = np.sqrt(3.0) / u_dc * np.absolute(u_s_ref)
+        if m > 1:
+            u_s_ref = u_s_ref / m
+            
         # Phase voltages without the zero-sequence voltage
         u_abc = complex2abc(u_s_ref)
 
@@ -139,15 +145,10 @@ class PWM:
             # Add another zero sequence component
             u_0 = .5*(np.amax(u_abc) + np.amin(u_abc))
             u_abc = u_abc + u_dc/4 - u_0
-
+            
             # Shift back
             u_abc = u_abc + idx*u_dc/2
-        
-        # Preventing overmodulation by means of a minimum phase error method
-        m = (2./u_dc)*np.amax(u_abc-u_dc/2)
-        if m > 1:
-            u_abc = u_dc/2 + (u_abc-u_dc/2)/m
-            
+                    
         # Duty ratios
         d_abc = u_abc/u_dc
 
