@@ -442,13 +442,13 @@ class RateLimiter:
 
         Parameters
         ----------
+        T_s : float
+            Sampling period (s).
         u : float
             Input signal.
 
         Returns
         -------
-        T_s : float
-            Sampling period (s).
         y : float
             Rate-limited output signal.
 
@@ -494,7 +494,7 @@ class Clock:
             Sampling period (s).
 
         """
-        self.t += T_s if self.t < self.t_reset else 0
+        self.t = (self.t + T_s) % self.t_reset
 
 
 # %%
